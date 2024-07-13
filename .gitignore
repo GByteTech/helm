@@ -20,7 +20,5 @@
 # Go workspace file
 go.work
 go.work.sum
-.idea/
-.cr-release-packages/
-.cr-index/
-
+.idea
+.cr-release-packages
