@@ -3,6 +3,16 @@ entries:
   fastapi:
     - apiVersion: v2
       appVersion: 0.1.0
+      created: "2024-07-13T22:40:56.48837+04:00"
+      description: A Helm Chart to deploy a FastAPI application on Kubernetes
+      digest: 666fadef1a4f164512e85dc5855c7c010f5df5fdeb1533a14a44380d1dfac4c7
+      name: fastapi
+      type: application
+      urls:
+        - https://github.com/GByteTech/helm/releases/download/fastapi-0.2.2/fastapi-0.2.2.tgz
+      version: 0.2.2
+    - apiVersion: v2
+      appVersion: 0.1.0
       created: "2024-07-13T22:32:52.311402+04:00"
       description: A Helm Chart to deploy a FastAPI application on Kubernetes
       digest: b839076c9d16b180c6311486c179be93ca5e21ff8bcaedc5cba6c3d63753c9c4
@@ -31,4 +41,4 @@ entries:
       urls:
         - https://github.com/GByteTech/helm/releases/download/fastapi-0.1.0/fastapi-0.1.0.tgz
       version: 0.1.0
-generated: "2024-07-13T22:32:52.311412+04:00"
+generated: "2024-07-13T22:40:56.488386+04:00"
