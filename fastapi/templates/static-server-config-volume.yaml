@@ -1,0 +1,81 @@
+{{- if .Values.static.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fastapi.fullname" . }}-static-config-volume
+  labels:
+    {{- include "fastapi.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    daemon off;
+    pid /run/nginx.pid;
+    worker_processes  1;
+
+    user root root;
+
+    error_log /dev/stderr info;
+
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      include mime.types;
+      default_type application/octet-stream;
+
+      log_format main '$proxy_protocol_addr - $remote_user [$time_local] '
+      '"$request" $status $body_bytes_sent '
+      '"$http_referer" "$http_user_agent"';
+
+      access_log /dev/stdout main;
+
+      sendfile on;
+      tcp_nopush on;
+      tcp_nodelay on;
+      keepalive_timeout 5s;
+
+      client_max_body_size 1m;
+
+      gzip on;
+      gzip_disable "msie6";
+      gzip_proxied any;
+      gzip_types text/plain application/json application/xml text/css application/javascript \
+      application/x-javascript text/javascript;
+
+      map $sent_http_content_type $expires {
+        default                    off;
+        text/html                  epoch;
+        text/css                   max;
+        application/javascript     max;
+        ~image/                    max;
+        }
+
+      server {
+        listen {{ .Values.static.service.port }} default_server;
+        port_in_redirect off;
+
+        expires $expires;
+
+        root {{ .Values.static.root }};
+        index index.html;
+
+        error_page 404 /404.html;
+
+        location {{ .Values.static.prefix }} {
+          alias {{ .Values.static.root }};
+          autoindex off;
+        }
+
+        location = /.well-known/health {
+          access_log off;
+          return 200 "ok\n";
+        }
+
+        location = /favicon.ico {
+          access_log off;
+          log_not_found off;
+        }
+      }
+    }
+
+{{- end -}}

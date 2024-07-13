@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fastapi.fullname" . }}
+  labels:
+    {{- include "fastapi.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "fastapi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "fastapi.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "fastapi.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.static.enabled }}
+      initContainers:
+        - name: collect-static
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - cp -r {{ .Values.static.source }}/. {{ .Values.static.root }}/
+          volumeMounts:
+            - mountPath: {{ .Values.static.root }}
+              name: static
+      {{- end }}
+      containers:
+        {{- if .Values.static.enabled }}
+        - name: static
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.static.image.repository }}:{{ .Values.static.image.tag }}"
+          imagePullPolicy: {{ .Values.static.image.pullPolicy }}
+          {{- with .Values.static.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.static.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.static.readinessProbe | nindent 12 }}
+          volumeMounts:
+            - name: static
+              mountPath: {{ .Values.static.root }}
+              readOnly: true
+            - name: static-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          ports:
+            - name: static
+              containerPort: {{ .Values.static.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.static.resources | nindent 12 }}
+        {{- end }}
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.config.extra }}
+          env:
+            {{- range $key, $value := .Values.config.extra }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          {{- if or .Values.config.existingConfig .Values.config.existingSecret }}
+          envFrom:
+            {{- if .Values.config.existingSecret }}
+            - secretRef:
+                name: {{ .Values.config.existingSecret }}
+            {{- end }}
+            {{- if .Values.config.existingConfig }}
+            - configMapRef:
+                name: {{ .Values.config.existingConfig }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- if $.Values.static.enabled }}
+        - name: static
+          emptyDir: { }
+        - name: static-config
+          configMap:
+            name: {{ include "fastapi.fullname" . }}-static-config-volume
+        {{- end }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
