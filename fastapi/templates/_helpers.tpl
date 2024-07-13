@@ -51,6 +51,32 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Migration labels
+*/}}
+{{- define "fastapi.migration.labels" -}}
+helm.sh/chart: {{ include "fastapi.chart" . }}
+app.kubernetes.io/name: {{ include "fastapi.name" . }}-migration
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Migration labels
+*/}}
+{{- define "fastapi.test.labels" -}}
+helm.sh/chart: {{ include "fastapi.chart" . }}
+app.kubernetes.io/name: {{ include "fastapi.name" . }}-test-connection
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "fastapi.serviceAccountName" -}}

@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: gcr.io/my-project/my-image
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
@@ -45,6 +45,12 @@ static:
     port: 8001
 
   resources: { }
+
+migration:
+  enabled: false
+  command: [ "alembic", "upgrade", "head" ]
+  resources: { }
+  annotations: { }
 
 imagePullSecrets: [ ]
 nameOverride: ""

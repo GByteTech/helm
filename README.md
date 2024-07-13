@@ -73,6 +73,22 @@ To enable static file serving:
 With this configuration, requests to `http://your-domain.com/static/*` will be served by Nginx, while other requests
 will be handled by your FastAPI application.
 
+## Database Migration
+
+This chart includes an optional Alembic database migration job that can be run before the
+main application starts. To enable the migration job, set `migration.enabled` to `true` in your values file:
+
+```yaml
+migration:
+  enabled: true
+  command: [ "alembic", "upgrade", "head" ]
+```
+
+The migration job will run as a Kubernetes Job before the main application is deployed. If the migration fails, the
+deployment will be rolled back.
+
+You can customize the migration command, environment variables, and resources as needed.
+
 ## Customization
 
 To customize the chart, create a `values.yaml` file and specify your values:
