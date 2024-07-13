@@ -111,7 +111,7 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- with .Values.volumes }}
+      {{- if or .Values.volumes .Values.static.enabled }}
       volumes:
         {{- if $.Values.static.enabled }}
         - name: static
@@ -120,7 +120,9 @@ spec:
           configMap:
             name: {{ include "fastapi.fullname" . }}-static-config-volume
         {{- end }}
-        {{- toYaml . | nindent 8 }}
+        {{- with .Values.volumes }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
