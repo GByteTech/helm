@@ -40,7 +40,7 @@ spec:
           command:
             - /bin/sh
             - -c
-            - cp -r {{ .Values.static.source }}/. {{ .Values.static.root }}/
+            - cp -r {{ .Values.static.source }}. {{ .Values.static.root }}
           volumeMounts:
             - mountPath: {{ .Values.static.root }}
               name: static

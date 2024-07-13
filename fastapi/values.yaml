@@ -20,8 +20,8 @@ config:
 static:
   enabled: false
 
-  source: "/app/static"
-  root: "/var/www/public/static"
+  source: "/app/static/"
+  root: "/var/www/public/static/"
   prefix: "/static/"
 
   image:
@@ -34,11 +34,11 @@ static:
   livenessProbe:
     httpGet:
       path: /.well-known/health
-      port: http
+      port: static
   readinessProbe:
     httpGet:
       path: /.well-known/health
-      port: http
+      port: static
 
   service:
     type: ClusterIP
