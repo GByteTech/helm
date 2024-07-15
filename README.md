@@ -107,3 +107,9 @@ helm install my-fastapi gbyte/fastapi -f values.yaml
 ```
 
 For more information on configuring the chart, please refer to the comments in the `values.yaml` file.
+
+## Credits
+
+- [Free VPN](https://forestvpn.com)
+- [VPN for teams](https://spacev.net)
+- [AI Driven Real Estate](https://anysqft.com)
