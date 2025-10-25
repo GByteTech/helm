@@ -1,43 +1,51 @@
-{{- if .Values.migration.enabled -}}
-apiVersion: batch/v1
-kind: Job
+{{- if .Values.scheduler.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: {{ include "fastapi.fullname" . }}-migration
+  name: {{ include "fastapi.fullname" . }}-scheduler
   labels:
-    {{- include "fastapi.migration.labels" . | nindent 4 }}
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": before-hook-creation
-    {{- with .Values.migration.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- include "fastapi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: scheduler
 spec:
-  backoffLimit: 3
+  # Scheduler should always run as a single replica to prevent duplicate scheduling
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "fastapi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: scheduler
   template:
     metadata:
-      name: {{ include "fastapi.fullname" . }}-migration
-      labels:
-        {{- include "fastapi.migration.labels" . | nindent 8 }}
-      {{- with .Values.migration.annotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/static-config-volume.yaml") . | sha256sum }}
+        {{- with .Values.scheduler.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "fastapi.labels" . | nindent 8 }}
+        app.kubernetes.io/component: scheduler
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
-      restartPolicy: Never
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ include "fastapi.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: migration
+        - name: scheduler
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.migration.command }}
+          {{- with .Values.scheduler.command }}
           command:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -60,7 +68,15 @@ spec:
             {{- end }}
           {{- end }}
           resources:
-            {{- toYaml .Values.migration.resources | nindent 12 }}
+            {{- toYaml .Values.scheduler.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

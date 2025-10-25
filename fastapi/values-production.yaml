@@ -1,0 +1,301 @@
+# Example production values for FastAPI Helm Chart
+# This demonstrates a complete production-ready configuration
+
+# =============================================================================
+# Application Configuration
+# =============================================================================
+
+replicaCount: 3
+
+image:
+  repository: gcr.io/my-project/my-fastapi-app
+  tag: "v1.0.0"
+  pullPolicy: IfNotPresent
+
+# Use existing Kubernetes Secret for sensitive configuration
+config:
+  existingSecret: "fastapi-secrets"
+  # Optional: Add non-sensitive config via ConfigMap
+  # existingConfig: "fastapi-config"
+  # Optional: Add environment variables directly
+  extra:
+    LOG_LEVEL: "info"
+    ENVIRONMENT: "production"
+
+# =============================================================================
+# Database Migration
+# =============================================================================
+
+migration:
+  enabled: true
+  command: ["alembic", "upgrade", "head"]
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# =============================================================================
+# Taskiq Workers (Background Tasks)
+# =============================================================================
+
+worker:
+  enabled: true
+  replicaCount: 3
+  
+  # Adjust command based on your Taskiq setup
+  command: ["taskiq", "worker", "app.tasks:broker"]
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Auto-scale workers based on load
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Allow workers to finish current tasks gracefully
+  terminationGracePeriodSeconds: 60
+
+# =============================================================================
+# Taskiq Scheduler (Cron Jobs)
+# =============================================================================
+
+scheduler:
+  enabled: true
+  
+  # Adjust command based on your Taskiq setup
+  command: ["taskiq", "scheduler", "app.tasks:scheduler"]
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+# =============================================================================
+# Static File Serving (Optional)
+# =============================================================================
+
+static:
+  enabled: false
+  # If you need static file serving, uncomment and configure:
+  # source: "/app/static/"
+  # root: "/var/www/public/static/"
+  # prefix: "/static/"
+  # resources:
+  #   limits:
+  #     cpu: 200m
+  #     memory: 128Mi
+  #   requests:
+  #     cpu: 100m
+  #     memory: 64Mi
+
+# =============================================================================
+# Service Configuration
+# =============================================================================
+
+service:
+  type: ClusterIP
+  port: 80
+  containerPort: 8000
+
+# =============================================================================
+# Ingress Configuration
+# =============================================================================
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    # Increase timeouts for long-running requests
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: api-example-com-tls
+      hosts:
+        - api.example.com
+
+# =============================================================================
+# Resource Limits and Health Checks
+# =============================================================================
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+livenessProbe:
+  httpGet:
+    path: /.well-known/health
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /.well-known/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /.well-known/health
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 5
+  # Allow 5 minutes for startup (30 attempts * 10s)
+  failureThreshold: 30
+
+# =============================================================================
+# Autoscaling Configuration
+# =============================================================================
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# =============================================================================
+# High Availability
+# =============================================================================
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+  # Alternatively, use maxUnavailable:
+  # maxUnavailable: 1
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Set to true if your app doesn't need to write to filesystem
+
+# =============================================================================
+# Pod Configuration
+# =============================================================================
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+podLabels:
+  environment: production
+  team: platform
+
+# =============================================================================
+# Node Selection and Scheduling
+# =============================================================================
+
+# Optional: Schedule pods on specific nodes
+nodeSelector: {}
+  # node.kubernetes.io/instance-type: n2-standard-4
+  # cloud.google.com/gke-nodepool: api-pool
+
+# Optional: Tolerate node taints
+tolerations: []
+  # - key: "workload"
+  #   operator: "Equal"
+  #   value: "api"
+  #   effect: "NoSchedule"
+
+# Optional: Pod affinity/anti-affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - fastapi
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - api
+          topologyKey: kubernetes.io/hostname
+
+# =============================================================================
+# Service Account
+# =============================================================================
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations:
+    # If using Workload Identity (GKE) or IAM Roles for Service Accounts (EKS):
+    # iam.gke.io/gcp-service-account: my-app@my-project.iam.gserviceaccount.com
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/my-app-role
+  name: ""
+
+# =============================================================================
+# Additional Configuration
+# =============================================================================
+
+# Image pull secrets for private registries
+imagePullSecrets: []
+  # - name: gcr-json-key
+
+# Additional volumes (e.g., for config files, certificates)
+volumes: []
+  # - name: config
+  #   configMap:
+  #     name: app-config
+  # - name: tls-certs
+  #   secret:
+  #     secretName: tls-certificates
+
+volumeMounts: []
+  # - name: config
+  #   mountPath: /app/config
+  #   readOnly: true
+  # - name: tls-certs
+  #   mountPath: /app/certs
+  #   readOnly: true

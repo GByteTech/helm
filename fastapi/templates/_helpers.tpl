@@ -51,6 +51,24 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Worker selector labels
+*/}}
+{{- define "fastapi.worker.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "fastapi.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: worker
+{{- end }}
+
+{{/*
+Scheduler selector labels
+*/}}
+{{- define "fastapi.scheduler.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "fastapi.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: scheduler
+{{- end }}
+
+{{/*
 Migration labels
 */}}
 {{- define "fastapi.migration.labels" -}}
