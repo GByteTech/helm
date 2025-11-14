@@ -132,6 +132,81 @@ scheduler:
   podAnnotations: { }
 
 # =============================================================================
+# Third-Party Services Configuration (Optional)
+# =============================================================================
+
+# Additional services that the application depends on (e.g., Redis, message queues, monitoring agents)
+# Uses the main application image and inherits all configs/secrets
+services: []
+# Example service configuration:
+# - name: redis
+#   enabled: true
+#   replicaCount: 1
+#   
+#   # Command to start the service
+#   command: ["redis-server"]
+#   
+#   # Service-specific resource limits
+#   resources:
+#     limits:
+#       cpu: 500m
+#       memory: 512Mi
+#     requests:
+#       cpu: 250m
+#       memory: 256Mi
+#   
+#   # Service-specific pod annotations
+#   podAnnotations: {}
+#   
+#   # Service-specific environment variables (merged with global config.extra)
+#   env: {}
+#   #   REDIS_PASSWORD: "secret"
+#   
+#   # Port configuration for the service
+#   ports: []
+#   #   - name: redis
+#   #     containerPort: 6379
+#   #     protocol: TCP
+#   
+#   # Service exposure configuration
+#   service:
+#     enabled: false
+#     type: ClusterIP
+#     ports: []
+#   #     - name: redis
+#   #       port: 6379
+#   #       targetPort: redis
+#   #       protocol: TCP
+#   
+#   # Autoscaling configuration
+#   autoscaling:
+#     enabled: false
+#     minReplicas: 1
+#     maxReplicas: 10
+#     targetCPUUtilizationPercentage: 80
+#     # targetMemoryUtilizationPercentage: 80
+#   
+#   # Graceful shutdown timeout (seconds)
+#   terminationGracePeriodSeconds: 30
+#   
+#   # Health check probes
+#   livenessProbe: {}
+#   #   tcpSocket:
+#   #     port: redis
+#   #   initialDelaySeconds: 10
+#   #   periodSeconds: 10
+#   
+#   readinessProbe: {}
+#   #   tcpSocket:
+#   #     port: redis
+#   #   initialDelaySeconds: 5
+#   #   periodSeconds: 5
+#   
+#   # Additional volumes
+#   volumeMounts: []
+#   volumes: []
+
+# =============================================================================
 # Kubernetes Resource Configuration
 # =============================================================================
 

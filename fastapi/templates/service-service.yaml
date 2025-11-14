@@ -1,0 +1,26 @@
+{{- range .Values.services }}
+{{- if and .enabled .service }}
+{{- if .service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fastapi.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "fastapi.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: service-{{ .name }}
+spec:
+  type: {{ .service.type | default "ClusterIP" }}
+  ports:
+    {{- range .service.ports }}
+    - port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ .protocol | default "TCP" }}
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "fastapi.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: service-{{ .name }}
+{{- end }}
+{{- end }}
+{{- end }}

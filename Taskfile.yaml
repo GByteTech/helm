@@ -1,0 +1,87 @@
+version: '3'
+
+vars:
+  CHART_NAME: fastapi
+  GITHUB_TOKEN:
+    sh: echo $GITHUB_TOKEN
+
+tasks:
+  package:
+    desc: Package the Helm chart
+    cmds:
+      - cr package {{.CHART_NAME}}
+    sources:
+      - "{{.CHART_NAME}}/**/*"
+    generates:
+      - ".cr-release-packages/{{.CHART_NAME}}-*.tgz"
+
+  upload:
+    desc: Upload packaged chart to GitHub releases
+    deps: [package]
+    cmds:
+      - cr upload -t {{.GITHUB_TOKEN}} --push --skip-existing
+    preconditions:
+      - sh: test -n "{{.GITHUB_TOKEN}}"
+        msg: "GITHUB_TOKEN environment variable is required"
+
+  index:
+    desc: Generate the index.yaml file
+    deps: [upload]
+    cmds:
+      - cr index -t {{.GITHUB_TOKEN}}
+    preconditions:
+      - sh: test -n "{{.GITHUB_TOKEN}}"
+        msg: "GITHUB_TOKEN environment variable is required"
+
+  publish:
+    desc: Publish index.yaml to gh-pages branch
+    deps: [index]
+    cmds:
+      - git stash
+      - git checkout gh-pages
+      - cr index -t {{.GITHUB_TOKEN}}
+      - cp -f .cr-index/index.yaml index.yaml
+      - git add index.yaml
+      - git commit -m "{{.CHART_NAME}} $(yq eval '.version' {{.CHART_NAME}}/Chart.yaml)"
+      - git push origin gh-pages
+      - git checkout main
+      - git stash pop || true
+    preconditions:
+      - sh: test -n "{{.GITHUB_TOKEN}}"
+        msg: "GITHUB_TOKEN environment variable is required"
+
+  release:
+    desc: Complete release process (package, upload, index, publish)
+    cmds:
+      - task: package
+      - task: upload
+      - task: index
+      - task: publish
+
+  clean:
+    desc: Clean up generated files and directories
+    cmds:
+      - rm -rf .cr-release-packages
+      - rm -rf .cr-index
+
+  lint:
+    desc: Lint the Helm chart
+    cmds:
+      - helm lint {{.CHART_NAME}}/
+
+  template:
+    desc: Test template rendering
+    cmds:
+      - helm template test-release {{.CHART_NAME}}/ --set worker.enabled=true --set scheduler.enabled=true
+
+  test:
+    desc: Run all tests (lint and template)
+    cmds:
+      - task: lint
+      - task: template
+
+  help:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
